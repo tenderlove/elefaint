@@ -140,6 +140,25 @@ module Elefaint
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
+      def sismember cmd
+        if db[cmd.first].member? cmd.last
+          Nodes::Integer.new 1
+        else
+          Nodes::Integer.new 0
+        end
+      end
+
+      def smove cmd
+        source, dest, member = *cmd
+        if db[source].member? member
+          db[source].delete member
+          db[dest] << member
+          Nodes::Integer.new 1
+        else
+          Nodes::Integer.new 0
+        end
+      end
+
       if $DEBUG
         def send method, *args
           p [Thread.current.object_id, method.upcase => args]
