@@ -38,6 +38,12 @@ module Elefaint
         ":#{value}\r\n"
       end
     }
+    Null = Struct.new(:value) {
+      def to_str
+        "$-1\r\n"
+      end
+    }
+    NULL = Null.new
   end
 
   class Parser
@@ -49,6 +55,8 @@ module Elefaint
       when ':' then Nodes::Integer.new io.readline.chomp
       when '$' then parse_bulk(io)
       when '*' then parse_multi_bulk(io)
+      else
+        raise x
       end
     end
 
@@ -58,7 +66,12 @@ module Elefaint
     end
 
     def parse_bulk io
-      Nodes::Bulk.new io.read(io.readline.chomp.to_i + 2).chomp
+      num = io.readline.chomp.to_i
+      if num == -1
+        Nodes::NULL
+      else
+        Nodes::Bulk.new io.read(num + 2).chomp
+      end
     end
   end
 
@@ -159,6 +172,17 @@ module Elefaint
         end
       end
 
+      def spop cmd
+        set = db[cmd.first]
+        val = set.first
+        if val
+          set.delete val
+          Nodes::Bulk.new val
+        else
+          Nodes::NULL
+        end
+      end
+
       if $DEBUG
         def send method, *args
           p [Thread.current.object_id, method.upcase => args]
@@ -185,26 +209,18 @@ module Elefaint
       loop do
         cmd = PARSER.parse(io)
 
-        puts "request #{cmd.to_str.inspect}"
+        puts "request #{cmd.to_str.inspect} # #{Thread.current.object_id}"
         socket.write cmd.to_str
         redis_res = PARSER.parse socket
-        puts "response #{redis_res.to_str.inspect}"
+        puts "response #{redis_res.to_str.inspect} # #{Thread.current.object_id}"
 
         args   = cmd.to_a
         method = args.shift
 
         my_res = machine.send method, args
-        assert_equal redis_res.to_str, my_res.to_str
         io.write my_res.to_str
 
         break if method == "quit"
-      end
-    end
-
-    private
-    def assert_equal exp, act
-      unless exp == act
-        raise "expected #{exp.chomp.gsub(/\r\n/, ';')} == #{act.chomp.gsub(/\r\n/, ';')}"
       end
     end
   end

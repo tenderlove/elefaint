@@ -18,11 +18,17 @@ module Elefaint
       assert_equal 'OK', blk.value
     end
 
+    def test_nil
+      blk = parser.parse io("$-1\r\n")
+      assert_equal nil, blk.value
+    end
+
     def test_roundtrip
       [
         "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n",
         "+OK\r\n",
         ":123\r\n",
+        "$-1\r\n",
       ].each do |val|
         blk = parser.parse io val
         assert_equal val, blk.to_str
