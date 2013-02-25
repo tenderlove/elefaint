@@ -124,6 +124,13 @@ module Elefaint
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
+      def sinter cmd
+        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
+          m & db[s]
+        }
+        Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
+      end
+
       if $DEBUG
         def send method, *args
           p [Thread.current.object_id, method.upcase => args]
