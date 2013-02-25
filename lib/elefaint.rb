@@ -124,6 +124,15 @@ module Elefaint
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
+      def sinterstore cmd
+        dest = cmd.shift
+        inter = cmd.drop(1).inject(db[cmd.first]) { |m, s|
+          m & db[s]
+        }
+        db[dest] = inter
+        Nodes::Integer.new inter.size
+      end
+
       def sinter cmd
         diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
           m & db[s]
