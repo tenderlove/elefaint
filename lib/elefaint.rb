@@ -206,6 +206,13 @@ module Elefaint
         Nodes::Integer.new mbers.length
       end
 
+      def sunion cmd
+        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
+          m | db[s]
+        }
+        Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
+      end
+
       def _process cmd
         args   = cmd.to_a
         method = args.shift
