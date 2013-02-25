@@ -314,6 +314,21 @@ module Elefaint
       response ":3\r\n"
     end
 
+    def test_info
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"
+      response "+OK\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$7\r\nflushdb\r\n"
+      response "+OK\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$7\r\nflushdb\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$4\r\ninfo\r\n"
+      response "$30\r\n# Server\r\nredis_version:2.6.10\r\n"
+    end
+
     private
 
     def request str

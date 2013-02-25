@@ -222,6 +222,10 @@ module Elefaint
         Nodes::Integer.new diff.length
       end
 
+      def info cmd
+        Nodes::Bulk.new "# Server\r\nredis_version:2.6.10"
+      end
+
       def _process cmd
         args   = cmd.to_a
         method = args.shift
