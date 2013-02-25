@@ -291,6 +291,29 @@ module Elefaint
       response "*3\r\n$2\r\ns1\r\n$2\r\ns2\r\n$2\r\ns3\r\n"
     end
 
+    def test_sunionstore
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"
+      response "+OK\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$7\r\nflushdb\r\n"
+      response "+OK\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$7\r\nflushdb\r\n"
+      response "+OK\r\n"
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns1\r\n"
+      response ":1\r\n"
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns2\r\n"
+      response ":1\r\n"
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nbar\r\n$2\r\ns2\r\n"
+      response ":1\r\n"
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nbar\r\n$2\r\ns3\r\n"
+      response ":1\r\n"
+      request "*4\r\n$11\r\nsunionstore\r\n$3\r\nbaz\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"
+      response ":3\r\n"
+    end
+
     private
 
     def request str

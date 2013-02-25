@@ -213,6 +213,15 @@ module Elefaint
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
+      def sunionstore cmd
+        dest = cmd.shift
+        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
+          m | db[s]
+        }
+        db[dest] = diff
+        Nodes::Integer.new diff.length
+      end
+
       def _process cmd
         args   = cmd.to_a
         method = args.shift
