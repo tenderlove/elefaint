@@ -199,6 +199,13 @@ module Elefaint
         end
       end
 
+      def srem cmd
+        set   = db[cmd.first]
+        mbers = cmd.drop(1).find_all { |y| set.member? y }
+        mbers.each { |m| set.delete m }
+        Nodes::Integer.new mbers.length
+      end
+
       def _process cmd
         args   = cmd.to_a
         method = args.shift

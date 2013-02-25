@@ -245,6 +245,29 @@ module Elefaint
       response "$2\r\ns1\r\n" # 70270392039940
     end
 
+    def test_srem
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"
+      response "+OK\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$7\r\nflushdb\r\n"
+      response "+OK\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"
+      response "+OK\r\n"
+      request "*1\r\n$7\r\nflushdb\r\n"
+      response "+OK\r\n"
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns1\r\n"
+      response ":1\r\n"
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns2\r\n"
+      response ":1\r\n"
+      request "*3\r\n$4\r\nsrem\r\n$3\r\nfoo\r\n$2\r\ns1\r\n"
+      response ":1\r\n"
+      request "*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"
+      response "+OK\r\n"
+      request "*3\r\n$4\r\nsrem\r\n$3\r\nfoo\r\n$2\r\ns1\r\n"
+      response ":0\r\n"
+    end
+
     private
 
     def request str
