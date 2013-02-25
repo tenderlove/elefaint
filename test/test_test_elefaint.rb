@@ -1,11 +1,6 @@
-require 'minitest/autorun'
-require 'elefaint'
-require 'stringio'
+require 'helper'
 
 module Elefaint
-  class TestCase < MiniTest::Unit::TestCase
-  end
-
   class TestParser < TestCase
     attr_reader :parser
 
@@ -39,17 +34,3 @@ module Elefaint
     end
   end
 end
-__END__
-{:ZOOMG=>"*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"}
-{:ZOOMG=>"*2\r\n$6\r\nselect\r\n$2\r\n14\r\n"}
-{:ZOOMG=>"*1\r\n$7\r\nflushdb\r\n"}
-{:ZOOMG=>"*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"}
-{:ZOOMG=>"*1\r\n$7\r\nflushdb\r\n"}
-{:ZOOMG=>"*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns1\r\n"}
-{:ZOOMG=>"*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns2\r\n"}
-{:ZOOMG=>"*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns1\r\n"}
-{:ZOOMG=>"*2\r\n$8\r\nsmembers\r\n$3\r\nfoo\r\n"}
-{:ZOOMG=>"*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"}
-{:ZOOMG=>"*2\r\n$8\r\nsmembers\r\n$3\r\nfoo\r\n"}
-{:ZOOMG=>"*2\r\n$6\r\nselect\r\n$2\r\n15\r\n"}
-{:ZOOMG=>"*1\r\n$4\r\nquit\r\n"}
