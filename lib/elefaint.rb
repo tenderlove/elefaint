@@ -183,6 +183,22 @@ module Elefaint
         end
       end
 
+      def srandmember cmd
+        set   = db[cmd.first]
+        count = (cmd[1] || 1).to_i
+
+        if count >= 0
+          chosen = set.first(count)
+          if count == 1
+            Nodes::Bulk.new chosen.first
+          else
+            Nodes::MultiBulk.new chosen.map { |v| Nodes::Bulk.new v }
+          end
+        else
+          raise NotImplementedError
+        end
+      end
+
       def _process cmd
         args   = cmd.to_a
         method = args.shift
@@ -216,12 +232,14 @@ module Elefaint
       loop do
         cmd = PARSER.parse(io)
 
-        puts "request #{cmd.to_str.inspect} # #{Thread.current.object_id}"
+        puts "request #{cmd.to_str.inspect}"
         socket.write cmd.to_str
         redis_res = PARSER.parse socket
-        puts "response #{redis_res.to_str.inspect} # #{Thread.current.object_id}"
+        puts "response #{redis_res.to_str.inspect}"
+
         method = nil
         my_res = machine._process(cmd) { |m| method = m }
+
         io.write my_res.to_str
         break if method == "quit"
       end

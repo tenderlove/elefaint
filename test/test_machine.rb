@@ -226,6 +226,25 @@ module Elefaint
       response "$-1\r\n" # 70121457169680
     end
 
+    def test_srandmember
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n" # 70270392039940
+      response "+OK\r\n" # 70270392039940
+      request "*2\r\n$6\r\nselect\r\n$2\r\n14\r\n" # 70270392039940
+      response "+OK\r\n" # 70270392039940
+      request "*1\r\n$7\r\nflushdb\r\n" # 70270392039940
+      response "+OK\r\n" # 70270392039940
+      request "*2\r\n$6\r\nselect\r\n$2\r\n15\r\n" # 70270392039940
+      response "+OK\r\n" # 70270392039940
+      request "*1\r\n$7\r\nflushdb\r\n" # 70270392039940
+      response "+OK\r\n" # 70270392039940
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns1\r\n" # 70270392039940
+      response ":1\r\n" # 70270392039940
+      request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns2\r\n" # 70270392039940
+      response ":1\r\n" # 70270392039940
+      request "*2\r\n$11\r\nsrandmember\r\n$3\r\nfoo\r\n" # 70270392039940
+      response "$2\r\ns1\r\n" # 70270392039940
+    end
+
     private
 
     def request str
@@ -233,7 +252,7 @@ module Elefaint
     end
 
     def response str
-      assert_match str, @response.to_str
+      assert_equal str, @response.to_str
     end
   end
 end
