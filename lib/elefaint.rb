@@ -183,6 +183,13 @@ module Elefaint
         end
       end
 
+      def _process cmd
+        args   = cmd.to_a
+        method = args.shift
+        yield method if block_given?
+        send method, args
+      end
+
       if $DEBUG
         def send method, *args
           p [Thread.current.object_id, method.upcase => args]
@@ -213,13 +220,9 @@ module Elefaint
         socket.write cmd.to_str
         redis_res = PARSER.parse socket
         puts "response #{redis_res.to_str.inspect} # #{Thread.current.object_id}"
-
-        args   = cmd.to_a
-        method = args.shift
-
-        my_res = machine.send method, args
+        method = nil
+        my_res = machine._process(cmd) { |m| method = m }
         io.write my_res.to_str
-
         break if method == "quit"
       end
     end

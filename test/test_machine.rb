@@ -229,10 +229,7 @@ module Elefaint
     private
 
     def request str
-      cmd = PARSER.parse io str
-      args   = cmd.to_a
-      method = args.shift
-      @response = @machine.send method, args
+      @response = @machine._process PARSER.parse io str
     end
 
     def response str
