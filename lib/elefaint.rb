@@ -63,11 +63,11 @@ module Elefaint
   end
 
   PARSER = Parser.new # :nodoc:
+  OK     = Nodes::Status.new "OK"
 
-  class Server < GServer
-    OK = Nodes::Status.new "OK"
 
-    class Machine
+  module Stores
+    class Memory
       STORE = []
 
       def initialize
@@ -81,7 +81,7 @@ module Elefaint
       end
 
       def flushdb cmd
-        STORE[@dbnum].clear
+        db.clear
         OK
       end
 
@@ -91,16 +91,37 @@ module Elefaint
 
       def smembers cmd
         STORE[@dbnum]
-        Nodes::MultiBulk.new STORE[@dbnum][cmd.shift].map { |v|
+        Nodes::MultiBulk.new db[cmd.shift].map { |v|
           Nodes::Bulk.new v
         }.reverse
       end
 
       def sadd cmd
-        set = STORE[@dbnum][cmd.shift]
+        set = db[cmd.shift]
         x = set.size
         cmd.each { |i| set << i }
         Nodes::Integer.new(set.size - x)
+      end
+
+      def scard cmd
+        set = db[cmd.shift]
+        Nodes::Integer.new set.size
+      end
+
+      def sdiffstore cmd
+        dest = cmd.shift
+        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
+          m - db[s]
+        }
+        db[dest] = diff
+        Nodes::Integer.new diff.size
+      end
+
+      def sdiff cmd
+        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
+          m - db[s]
+        }
+        Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
       if $DEBUG
@@ -109,21 +130,30 @@ module Elefaint
           super
         end
       end
-    end
 
+      private
+      def db
+        STORE[@dbnum]
+      end
+    end
+  end
+
+  class Server < GServer
     def initialize port = 6381, *args
       super
     end
 
     def serve io
-      machine = Machine.new
+      machine = Stores::Memory.new
       socket  = TCPSocket.new 'localhost', 7777
 
       loop do
         cmd = PARSER.parse(io)
 
+        puts "request #{cmd.to_str.inspect}"
         socket.write cmd.to_str
         redis_res = PARSER.parse socket
+        puts "response #{redis_res.to_str.inspect}"
 
         args   = cmd.to_a
         method = args.shift
