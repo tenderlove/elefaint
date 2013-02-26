@@ -231,6 +231,24 @@ module Elefaint
         Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v}
       end
 
+      SREM = 'DELETE FROM redis_sets WHERE name = $1 AND value = $2 RETURNING id'
+      def srem cmd
+        name  = cmd.first
+        count = 0
+
+        transaction do
+          stmt = stmt_for SREM
+          cmd.drop(1).each do |value|
+            conn.send_query_prepared stmt, [name, value]
+            conn.block
+            result = conn.get_last_result
+            count += 1 unless result.values.empty?
+          end
+        end
+
+        Nodes::Integer.new count
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish
