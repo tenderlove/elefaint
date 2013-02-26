@@ -1,6 +1,17 @@
 module Elefaint
   module Stores
+    module Processable
+      def _process cmd
+        args   = cmd.to_a
+        method = args.shift
+        yield method if block_given?
+        send method, args
+      end
+    end
+
     class Memory
+      include Processable
+
       def initialize
         @dbnum = 0
         @sets  = []
@@ -158,13 +169,6 @@ module Elefaint
 
       def rpop cmd
         Nodes::Bulk.new lists[cmd.first].pop
-      end
-
-      def _process cmd
-        args   = cmd.to_a
-        method = args.shift
-        yield method if block_given?
-        send method, args
       end
 
       if $DEBUG
