@@ -187,6 +187,16 @@ module Elefaint
         end
       end
 
+      SCARD = 'SELECT COUNT(*) FROM redis_sets WHERE name = $1'
+
+      def scard cmd
+        stmt = stmt_for SCARD
+        conn.send_query_prepared stmt, cmd
+        conn.block
+        result = conn.get_last_result
+        Nodes::Integer.new result.values.flatten.first
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish
