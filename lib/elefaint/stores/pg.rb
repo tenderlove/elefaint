@@ -120,6 +120,15 @@ module Elefaint
         }
       end
 
+      SISMEMBER = 'SELECT COUNT(1) FROM redis_sets WHERE name = $1 AND value = $2'
+      def sismember cmd
+        stmt = stmt_for SISMEMBER
+        conn.send_query_prepared stmt, cmd
+        conn.block
+        result = conn.get_last_result
+        Nodes::Integer.new result.values.first.first.to_i
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish
