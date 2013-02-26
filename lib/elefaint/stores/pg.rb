@@ -129,6 +129,17 @@ module Elefaint
         Nodes::Integer.new result.values.first.first.to_i
       end
 
+      SINTER = 'SELECT value FROM redis_sets WHERE name = '
+
+      def sinter cmd
+        sql = cmd.length.times.map { |i| SINTER + "$#{i+1}" }.join ' INTERSECT '
+        stmt = stmt_for sql
+        conn.send_query_prepared stmt, cmd
+        conn.block
+        result = conn.get_last_result
+        Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v}
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish
