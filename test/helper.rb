@@ -1,5 +1,6 @@
 require 'minitest/autorun'
 require 'elefaint'
+require 'elefaint/parser'
 require 'stringio'
 
 module Elefaint
