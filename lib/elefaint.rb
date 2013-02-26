@@ -81,20 +81,22 @@ module Elefaint
 
   module Stores
     class Memory
-      STORE = []
 
       def initialize
         @dbnum = 0
+        @sets  = []
+        @lists = []
       end
 
       def select cmd
         @dbnum = cmd.first.to_i
-        STORE[@dbnum] ||= Hash.new { |h,k| h[k] = Set.new }
+        @sets[@dbnum] ||= Hash.new { |h,k| h[k] = Set.new }
+        @lists[@dbnum] ||= Hash.new { |h,k| h[k] = [] }
         OK
       end
 
       def flushdb cmd
-        db.clear
+        sets.clear
         OK
       end
 
@@ -103,58 +105,57 @@ module Elefaint
       end
 
       def smembers cmd
-        STORE[@dbnum]
-        Nodes::MultiBulk.new db[cmd.shift].map { |v|
+        Nodes::MultiBulk.new sets[cmd.shift].map { |v|
           Nodes::Bulk.new v
         }.reverse
       end
 
       def sadd cmd
-        set = db[cmd.shift]
+        set = sets[cmd.shift]
         x = set.size
         cmd.each { |i| set << i }
         Nodes::Integer.new(set.size - x)
       end
 
       def scard cmd
-        set = db[cmd.shift]
+        set = sets[cmd.shift]
         Nodes::Integer.new set.size
       end
 
       def sdiffstore cmd
         dest = cmd.shift
-        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
-          m - db[s]
+        diff = cmd.drop(1).inject(sets[cmd.first]) { |m, s|
+          m - sets[s]
         }
-        db[dest] = diff
+        sets[dest] = diff
         Nodes::Integer.new diff.size
       end
 
       def sdiff cmd
-        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
-          m - db[s]
+        diff = cmd.drop(1).inject(sets[cmd.first]) { |m, s|
+          m - sets[s]
         }
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
       def sinterstore cmd
         dest = cmd.shift
-        inter = cmd.drop(1).inject(db[cmd.first]) { |m, s|
-          m & db[s]
+        inter = cmd.drop(1).inject(sets[cmd.first]) { |m, s|
+          m & sets[s]
         }
-        db[dest] = inter
+        sets[dest] = inter
         Nodes::Integer.new inter.size
       end
 
       def sinter cmd
-        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
-          m & db[s]
+        diff = cmd.drop(1).inject(sets[cmd.first]) { |m, s|
+          m & sets[s]
         }
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
       def sismember cmd
-        if db[cmd.first].member? cmd.last
+        if sets[cmd.first].member? cmd.last
           Nodes::Integer.new 1
         else
           Nodes::Integer.new 0
@@ -163,9 +164,9 @@ module Elefaint
 
       def smove cmd
         source, dest, member = *cmd
-        if db[source].member? member
-          db[source].delete member
-          db[dest] << member
+        if sets[source].member? member
+          sets[source].delete member
+          sets[dest] << member
           Nodes::Integer.new 1
         else
           Nodes::Integer.new 0
@@ -173,7 +174,7 @@ module Elefaint
       end
 
       def spop cmd
-        set = db[cmd.first]
+        set = sets[cmd.first]
         val = set.first
         if val
           set.delete val
@@ -184,7 +185,7 @@ module Elefaint
       end
 
       def srandmember cmd
-        set   = db[cmd.first]
+        set   = sets[cmd.first]
         count = (cmd[1] || 1).to_i
 
         if count >= 0
@@ -200,30 +201,44 @@ module Elefaint
       end
 
       def srem cmd
-        set   = db[cmd.first]
+        set   = sets[cmd.first]
         mbers = cmd.drop(1).find_all { |y| set.member? y }
         mbers.each { |m| set.delete m }
         Nodes::Integer.new mbers.length
       end
 
       def sunion cmd
-        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
-          m | db[s]
+        diff = cmd.drop(1).inject(sets[cmd.first]) { |m, s|
+          m | sets[s]
         }
         Nodes::MultiBulk.new diff.map { |v| Nodes::Bulk.new v }
       end
 
       def sunionstore cmd
         dest = cmd.shift
-        diff = cmd.drop(1).inject(db[cmd.first]) { |m, s|
-          m | db[s]
+        diff = cmd.drop(1).inject(sets[cmd.first]) { |m, s|
+          m | sets[s]
         }
-        db[dest] = diff
+        sets[dest] = diff
         Nodes::Integer.new diff.length
       end
 
       def info cmd
         Nodes::Bulk.new "# Server\r\nredis_version:2.6.10"
+      end
+
+      def rpush cmd
+        dest = cmd.shift
+        lists[dest].concat cmd
+        Nodes::Integer.new lists[dest].length
+      end
+
+      def llen cmd
+        Nodes::Integer.new lists[cmd.first].length
+      end
+
+      def rpop cmd
+        Nodes::Bulk.new lists[cmd.first].pop
       end
 
       def _process cmd
@@ -241,8 +256,12 @@ module Elefaint
       end
 
       private
-      def db
-        STORE[@dbnum]
+      def sets
+        @sets[@dbnum]
+      end
+
+      def lists
+        @lists[@dbnum]
       end
     end
   end
