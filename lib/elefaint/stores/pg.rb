@@ -167,6 +167,26 @@ module Elefaint
         end
       end
 
+      SMOVE = <<-eosql
+        UPDATE redis_sets
+        SET name = $1
+        WHERE name = $2 AND value = $3 RETURNING id
+      eosql
+
+      def smove cmd
+        source, dest, member = *cmd
+
+        stmt = stmt_for SMOVE
+        conn.send_query_prepared stmt, [dest, source, member]
+        conn.block
+        result = conn.get_last_result
+        if result.values.any?
+          Nodes::Integer.new 1
+        else
+          Nodes::Integer.new 0
+        end
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish
