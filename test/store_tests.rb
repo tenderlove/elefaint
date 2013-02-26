@@ -281,7 +281,8 @@ module Elefaint
       request "*3\r\n$4\r\nsadd\r\n$3\r\nbar\r\n$2\r\ns3\r\n"
       response ":1\r\n"
       request "*3\r\n$6\r\nsunion\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"
-      response "*3\r\n$2\r\ns1\r\n$2\r\ns2\r\n$2\r\ns3\r\n"
+      assert_match(/^\*3\r\n\$2\r\ns[123]\r\n\$2\r\ns[123]\r\n\$2\r\ns[123]\r\n/m,
+                   @response.to_str)
     end
 
     def test_sunionstore
