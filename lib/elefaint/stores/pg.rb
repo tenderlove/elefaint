@@ -197,6 +197,29 @@ module Elefaint
         Nodes::Integer.new result.values.flatten.first
       end
 
+      def info cmd
+        Nodes::Bulk.new "# Server\r\nredis_version:2.6.10"
+      end
+
+      SPOP = <<-eosql
+        DELETE FROM redis_sets
+          WHERE id IN
+            (SELECT id FROM redis_sets WHERE name = $1 LIMIT 1)
+        RETURNING value
+      eosql
+
+      def spop cmd
+        stmt = stmt_for SPOP
+        conn.send_query_prepared stmt, cmd
+        conn.block
+        result = conn.get_last_result
+        if result.values.any?
+          Nodes::Bulk.new result.values.first.first
+        else
+          Nodes::NULL
+        end
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish
