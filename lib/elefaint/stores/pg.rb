@@ -140,6 +140,33 @@ module Elefaint
         Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v}
       end
 
+      SRANDMEMBER = <<-eosql
+        SELECT value
+        FROM redis_sets
+        WHERE name = $1
+        ORDER BY random()
+        LIMIT $2
+      eosql
+
+      def srandmember cmd
+        count = (cmd[1] || 1).to_i
+
+        stmt = stmt_for SRANDMEMBER
+        conn.send_query_prepared stmt, [cmd.first, count]
+        conn.block
+        result = conn.get_last_result
+
+        if count >= 0
+          if count == 1
+            Nodes::Bulk.new result.values.first.first
+          else
+            Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v }
+          end
+        else
+          raise NotImplementedError
+        end
+      end
+
       def quit cmd
         @stmt_cache.clear
         conn.finish

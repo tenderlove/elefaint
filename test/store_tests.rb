@@ -235,7 +235,7 @@ module Elefaint
       request "*3\r\n$4\r\nsadd\r\n$3\r\nfoo\r\n$2\r\ns2\r\n" # 70270392039940
       response ":1\r\n" # 70270392039940
       request "*2\r\n$11\r\nsrandmember\r\n$3\r\nfoo\r\n" # 70270392039940
-      response "$2\r\ns1\r\n" # 70270392039940
+      assert_match(/^\$2\r\ns[12]\r\n/m, @response.to_str)
     end
 
     def test_srem
