@@ -223,7 +223,7 @@ module Elefaint
       SDIFF = 'SELECT value FROM redis_sets WHERE name = '
 
       def sdiff cmd
-        sql = cmd.length.times.map { |i| SINTER + "$#{i+1}" }.join ' EXCEPT '
+        sql = cmd.length.times.map { |i| SDIFF + "$#{i+1}" }.join ' EXCEPT '
         stmt = stmt_for sql
         conn.send_query_prepared stmt, cmd
         conn.block
@@ -251,12 +251,21 @@ module Elefaint
 
       SUNION = 'SELECT value FROM redis_sets WHERE name = '
       def sunion cmd
-        sql = cmd.length.times.map { |i| SINTER + "$#{i+1}" }.join ' UNION '
+        sql = cmd.length.times.map { |i| SUNION + "$#{i+1}" }.join ' UNION '
         stmt = stmt_for sql
         conn.send_query_prepared stmt, cmd
         conn.block
         result = conn.get_last_result
         Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v}
+      end
+
+      SUNIONSTORE = 'SELECT $1::varchar as name, value FROM redis_sets WHERE name = '
+      def sunionstore cmd
+        dest = cmd.shift
+        sql = cmd.length.times.map { |i| SUNIONSTORE + "$#{i+2}" }.join ' UNION '
+        _execute "DELETE FROM redis_sets WHERE name = $1", [dest]
+        result = _execute "INSERT INTO redis_sets (name, value) (#{sql})", [dest] + cmd
+        Nodes::Integer.new result.cmd_tuples
       end
 
       def quit cmd
@@ -307,6 +316,13 @@ module Elefaint
       rescue Exception
         conn.exec "ROLLBACK"
         raise
+      end
+
+      def _execute sql, binds
+        stmt = stmt_for sql
+        conn.send_query_prepared stmt, binds
+        conn.block
+        conn.get_last_result
       end
     end
   end
