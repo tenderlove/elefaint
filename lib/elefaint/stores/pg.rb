@@ -231,6 +231,19 @@ module Elefaint
         Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v}
       end
 
+      SDIFFSTORE = 'SELECT $1::varchar as name, value FROM redis_sets WHERE name = '
+
+      def sdiffstore cmd
+        dest = cmd.shift
+        sql  = cmd.length.times.map { |i| SDIFFSTORE + "$#{i+2}" }.join ' EXCEPT '
+
+        result = transaction do
+          _execute "DELETE FROM redis_sets WHERE name = $1", [dest]
+          _execute "INSERT INTO redis_sets (name, value) (#{sql})", [dest] + cmd
+        end
+        Nodes::Integer.new result.cmd_tuples
+      end
+
       SREM = 'DELETE FROM redis_sets WHERE name = $1 AND value = $2 RETURNING id'
       def srem cmd
         name  = cmd.first
@@ -263,8 +276,11 @@ module Elefaint
       def sunionstore cmd
         dest = cmd.shift
         sql = cmd.length.times.map { |i| SUNIONSTORE + "$#{i+2}" }.join ' UNION '
-        _execute "DELETE FROM redis_sets WHERE name = $1", [dest]
-        result = _execute "INSERT INTO redis_sets (name, value) (#{sql})", [dest] + cmd
+        result = transaction do
+          _execute "DELETE FROM redis_sets WHERE name = $1", [dest]
+          _execute "INSERT INTO redis_sets (name, value) (#{sql})", [dest] + cmd
+        end
+
         Nodes::Integer.new result.cmd_tuples
       end
 
@@ -311,8 +327,9 @@ module Elefaint
 
       def transaction
         conn.exec "BEGIN"
-        yield
+        x = yield
         conn.exec "COMMIT"
+        x
       rescue Exception
         conn.exec "ROLLBACK"
         raise
