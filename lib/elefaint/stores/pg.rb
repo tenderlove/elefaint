@@ -311,7 +311,7 @@ module Elefaint
               id SERIAL,
               name varchar,
               value varchar,
-              created_at timestamp default current_timestamp
+              created_at timestamptz default current_timestamp
             );
           eosql
           conn.exec 'CREATE UNIQUE INDEX redis_sets_name_value ON redis_sets (name, value)'
@@ -320,10 +320,39 @@ module Elefaint
               id SERIAL,
               name varchar,
               value varchar,
-              created_at timestamp default current_timestamp
+              created_at timestamptz default current_timestamp
             );
           eosql
         end
+      end
+
+      RPUSH = "INSERT INTO redis_lists (name, value) VALUES ($1, $2)"
+
+      def rpush cmd
+        result = transaction do
+          _execute RPUSH, cmd
+          _execute LLEN, [cmd.first]
+        end
+        Nodes::Integer.new result.values.first.first.to_i
+      end
+
+      LLEN = "SELECT COUNT(value) FROM redis_lists WHERE name = $1"
+
+      def llen cmd
+        result = _execute LLEN, cmd
+        Nodes::Integer.new result.values.first.first.to_i
+      end
+
+      RPOP = <<-eosql
+        DELETE FROM redis_lists
+          WHERE id IN
+            (SELECT id FROM redis_lists WHERE name = $1 ORDER BY created_at DESC LIMIT 1)
+        RETURNING value
+      eosql
+
+      def rpop cmd
+        result = _execute RPOP, cmd
+        Nodes::Bulk.new result.values.first.first
       end
 
       private
