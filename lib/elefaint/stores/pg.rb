@@ -140,6 +140,18 @@ module Elefaint
         Nodes::MultiBulk.new result.values.flatten.map { |v| Nodes::Bulk.new v}
       end
 
+      SINTERSTORE = 'SELECT $1::varchar as name, value FROM redis_sets WHERE name = '
+      def sinterstore cmd
+        dest = cmd.shift
+        sql = cmd.length.times.map { |i| SUNIONSTORE + "$#{i+2}" }.join ' INTERSECT '
+        result = transaction do
+          _execute "DELETE FROM redis_sets WHERE name = $1", [dest]
+          _execute "INSERT INTO redis_sets (name, value) (#{sql})", [dest] + cmd
+        end
+
+        Nodes::Integer.new result.cmd_tuples
+      end
+
       SRANDMEMBER = <<-eosql
         SELECT value
         FROM redis_sets
